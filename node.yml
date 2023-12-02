@@ -1,0 +1,175 @@
+- name: node setup
+  hosts: node
+  become: true
+  remote_user: admin
+  become_method: sudo
+
+  tasks:
+    - name: create bingo user
+      user:
+        name: bingo
+
+    - name: make dir /opt/bingo 
+      file:
+        path: /opt/bingo/
+        owner: bingo
+        group: bingo
+        mode: '740'
+        state: directory
+
+    - name: make dir /opt/bongo 
+      file:
+        path: /opt/bongo/
+        owner: bingo
+        group: bingo
+        mode: '740'
+        state: directory
+
+    - name: make dir /opt/bingo/logs
+      file:
+        path: /opt/bingo/logs
+        owner: bingo
+        group: bingo
+        mode: '740'
+        state: directory
+
+    - name: make link /opt/bongo/logs -> /opt/bingo/logs
+      file:
+        src: /opt/bingo/logs
+        dest: /opt/bongo/logs
+        state: link
+
+    - name: make bongo log dir
+      file:
+        path: /opt/bongo/logs/c4f9302ecf
+        owner: bingo
+        group: bingo
+        mode: '740'
+        state: directory
+
+    - name: make bongo log file
+      file:
+        path: /opt/bingo/logs/c4f9302ecf/main.log
+        owner: bingo
+        group: bingo
+        mode: '740'
+        state: touch
+
+    - name: copy bingo binary
+      copy:
+        src: files/bingo
+        owner: bingo
+        group: bingo
+        mode: '740'
+        dest: /opt/bingo/bingo
+      notify:
+        - restart bingo
+
+    - name: copy bingo_restart_script 
+      copy:
+        src: files/check_and_restart_bingo.sh
+        owner: bingo
+        group: bingo
+        mode: '740'
+        dest: /opt/bingo/check_and_restart_bingo.sh
+      notify:
+        - restart bingo
+
+    - name: copy bingo config 
+      template:
+        src: config.yaml
+        owner: bingo
+        group: bingo
+        mode: '740'
+        dest: /opt/bingo/config.yaml
+      notify:
+        - restart bingo
+
+    - name: copy bingo service file
+      copy:
+        src: files/bingo.service
+        dest: /usr/lib/systemd/system/bingo.service
+      notify:
+        - restart bingo
+
+    - name: copy bingo_check service file
+      copy:
+        src: files/bingo_check.service
+        dest: /usr/lib/systemd/system/bingo_check.service
+      notify:
+        - restart bingo
+
+    - name: copy bingo_check timer file
+      copy:
+        src: files/bingo_check.timer
+        dest: /usr/lib/systemd/system/bingo_check.timer
+      notify:
+        - restart bingo
+
+    - name: enable bingo service
+      systemd:
+        name: bingo
+        enabled: yes
+
+    - name: enable bing_check timer
+      systemd:
+        name: bingo_check.timer
+        enabled: yes
+
+    - name: copy bingo_check timer file
+      copy:
+        src: files/cert.pem
+        dest: /etc/haproxy/cert.pem
+      notify:
+        - restart haproxy
+
+    - name: copy haproxy config 
+      template:
+        src: haproxy.conf.j2
+        dest: /etc/haproxy/haproxy.cfg
+      tags:
+        - haproxy
+      notify:
+        - restart haproxy
+
+    - name: copy haproxy rsyslogd
+      copy:
+        src: files/rsyslogd_haproxy.conf
+        dest: /etc/rsyslog.d/haproxy.cfg
+      tags:
+        - logs
+      notify:
+        - restart rsyslogd
+
+    - name: open port
+      shell: 'semanage port -a -t http_port_t -p tcp 28914'
+      ignore_errors: true
+
+    - name: open port
+      shell: 'semanage port -a -t http_port_t -p tcp 9999'
+      ignore_errors: true
+
+  handlers:
+    - name: restart bingo service
+      listen: restart bingo
+      systemd:
+        name: bingo.service
+        daemon_reload: true
+        state: restarted
+
+    - name: restart bingo timer
+      listen: restart bingo
+      systemd:
+        name: bingo_check.timer
+        daemon_reload: true
+        state: restarted
+
+    - name: restart haproxy
+      systemd:
+        name: haproxy.service
+        state: restarted
+
+    - name: restart rsyslogd
+      systemd:
+        name: rsyslog.service
+        state: restarted

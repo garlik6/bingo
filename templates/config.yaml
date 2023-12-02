@@ -1,0 +1,10 @@
+student_email: grigory.bashev@yandex.ru
+postgres_cluster:
+  hosts:
+  - address: 192.168.1.29
+    port: 5432
+  user: bingo
+  password: bingo
+  db_name: postgres
+  ssl_mode: disable
+  use_closest_node: false

@@ -1,0 +1,21 @@
+- name: base setup
+  hosts: all
+  become: true
+  remote_user: admin
+  become_method: sudo
+
+  tasks:
+    - name: install packages
+      yum: 
+        name: "{{ item }}"
+        state: present
+      loop: "{{ packages }}"
+
+    - name: enable chronyd
+      systemd: 
+        name: chronyd
+        state: started
+        enabled: yes
+
+    - name: set timezone
+      shell: 'timedatectl set-timezone Europe/Moscow'  

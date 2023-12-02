@@ -1,0 +1,8 @@
+packages:
+  - haproxy
+  - telnet
+  - vim
+  - strace
+  - policycoreutils-python-utils
+  - tcpdump
+  - chrony

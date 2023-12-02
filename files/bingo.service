@@ -1,0 +1,12 @@
+[Unit]
+Description=bingo service
+
+[Service]
+User=bingo
+ExecStart=/opt/bingo/bingo run_server
+Restart=on-failure
+MemoryHigh=1G
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target

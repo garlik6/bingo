@@ -1,0 +1,15 @@
+- name: database setup
+  hosts: db
+  become: true
+  remote_user: admin
+  become_method: sudo
+
+  tasks:
+    - name: init postgres
+      shell: 'postgresql-setup --initdb'
+
+  handlers:
+    - name: restart postgres
+      systemd:
+        name: postgres.service
+        state: restarted

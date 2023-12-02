@@ -1,0 +1,6 @@
+packages:
+  - postgresql-server
+  - telnet
+  - vim
+  - strace
+  - chrony

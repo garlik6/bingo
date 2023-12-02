@@ -1,0 +1,69 @@
+global
+  log         127.0.0.1:514 local0
+  chroot      /var/lib/haproxy
+  pidfile     /var/run/haproxy.pid
+  maxconn     4000
+  user        haproxy
+  group       haproxy
+  daemon
+  stats socket ipv4@127.0.0.1:8080 level admin
+  stats socket /var/run/hapee-lb.sock mode 666 level admin
+  stats timeout 2m
+
+defaults
+  mode                    http
+  log                     global
+  option                  httplog
+  option                  dontlognull
+  option http-server-close
+  option forwardfor       except 127.0.0.0/8
+  option                  redispatch
+  retries                 3
+  timeout http-request    10s
+  timeout queue           1m
+  timeout connect         10s
+  timeout client          1m
+  timeout server          1m
+  timeout http-keep-alive 10s
+  timeout check           10s
+  maxconn                 3000
+
+frontend bingo
+
+  bind :80
+  bind :443 ssl crt /etc/haproxy/cert.pem
+  default_backend bingo_server
+
+  http-response set-header X-Cache-Status HIT if !{ srv_id -m found }
+  http-response set-header X-Cache-Status MISS if { srv_id -m found }
+
+  http-request cache-use dummycache if { path_beg /long_dummy }
+  http-response cache-store dummycache
+  acl cache_me path_dir /long_dummy
+  use_backend bingo_server_cache if cache_me
+
+backend bingo_server
+  option httpchk
+  http-check connect
+  http-check send meth GET uri /ping
+  http-check expect status 200
+
+
+  server node1 192.168.1.4:28914 check
+  server node2 192.168.1.14:28914 check
+
+backend bingo_server_cache
+  option httpchk
+  http-check connect
+  http-check send meth GET uri /ping
+  http-check expect status 200
+
+  http-response set-header Cache-Control max-age=60
+
+  server node1 192.168.1.4:28914 check
+  server node2 192.168.1.14:28914 check
+
+cache dummycache
+   total-max-size 40
+   max-object-size 100000
+   max-age 60

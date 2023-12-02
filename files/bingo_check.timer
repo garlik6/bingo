@@ -1,0 +1,9 @@
+[Unit]
+Description=HTTP Check Timer for bingo
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+Unit=bingo_check.service
+
+[Install]
+WantedBy=timers.target
